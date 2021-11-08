@@ -185,7 +185,14 @@ winner scores player1 player2 = if score2 > score1
 --     ==> Map.fromList [(False,3),(True,1)]
 
 freqs :: (Eq a, Ord a) => [a] -> Map.Map a Int
-freqs xs = todo
+freqs xs = foldr freqHelper Map.empty xs
+
+freqHelper :: (Ord a) => a -> Map.Map a Int -> Map.Map a Int
+freqHelper current frequencies = Map.alter increaseOrReturn current frequencies
+
+increaseOrReturn :: Maybe Int -> Maybe Int
+increaseOrReturn (Just value) = Just (value + 1)
+increaseOrReturn Nothing = Just 1
 
 ------------------------------------------------------------------------------
 -- Ex 10: recall the withdraw example from the course material. Write a
@@ -243,4 +250,10 @@ swap i j arr = (arr // [(i, arr ! j)]) // [(j, temp)]
 -- Hint: check out Data.Array.indices or Data.Array.assocs
 
 maxIndex :: (Ix i, Ord a) => Array i a -> i
-maxIndex arr = todo
+maxIndex arr = fst (foldr maxIndexHelper (firstIndex, arr ! firstIndex) (assocs arr))
+               where firstIndex = head (indices arr)
+
+maxIndexHelper :: (Ix i, Ord a) => (i, a) -> (i, a) -> (i, a)
+maxIndexHelper current largest = if snd current > snd largest
+                                 then current
+                                 else largest 
