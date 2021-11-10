@@ -133,7 +133,10 @@ renderListExample = renderList justADot (9,11) (9,11)
 --      ["000000","000000","000000"]]
 
 dotAndLine :: Picture
-dotAndLine = todo
+dotAndLine = Picture f
+             where f (Coord x y) | x == 3 && y == 4 = white
+                                 | y == 8 = pink
+                                 | otherwise = black
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -166,10 +169,11 @@ dotAndLine = todo
 --          ["7f0000","7f0000","7f0000"]]
 
 blendColor :: Color -> Color -> Color
-blendColor = todo
+blendColor (Color r1 g1 b1) (Color r2 g2 b2) = Color ((r1 + r2) `div` 2) ((g1 + g2) `div` 2) ((b1 + b2) `div` 2)
 
 combine :: (Color -> Color -> Color) -> Picture -> Picture -> Picture
-combine = todo
+combine f (Picture p1) (Picture p2) = Picture t
+                                      where t (Coord x y) = f (p1 (Coord x y)) (p2 (Coord x y))
 
 ------------------------------------------------------------------------------
 
@@ -230,7 +234,12 @@ exampleCircle = fill red (circle 80 100 200)
 --        ["000000","000000","000000","000000","000000","000000"]]
 
 rectangle :: Int -> Int -> Int -> Int -> Shape
-rectangle x0 y0 w h = todo
+rectangle x0 y0 w h = Shape f
+                      where f (Coord x y) = (between (x0, x0 + w) x) && (between (y0, y0 + h) y)
+
+between :: (Int, Int) -> Int -> Bool
+between (min, max) value = value >= min && value < max
+
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -246,10 +255,12 @@ rectangle x0 y0 w h = todo
 -- shape.
 
 union :: Shape -> Shape -> Shape
-union = todo
+union (Shape s1) (Shape s2) = Shape f
+                              where f (Coord x y) = s1 (Coord x y) || s2 (Coord x y)
 
 cut :: Shape -> Shape -> Shape
-cut = todo
+cut (Shape s1) (Shape s2) = Shape f
+                            where f (Coord x y) = s1 (Coord x y) && (not (s2 (Coord x y)))
 ------------------------------------------------------------------------------
 
 -- Here's a snowman, built using union from circles and rectangles.
@@ -277,7 +288,10 @@ exampleSnowman = fill white snowman
 --        ["000000","000000","000000"]]
 
 paintSolid :: Color -> Shape -> Picture -> Picture
-paintSolid color shape base = todo
+paintSolid color (Shape s) (Picture base) = Picture f
+                                            where f (Coord x y) | s (Coord x y) = color
+                                                                | otherwise = base (Coord x y)
+
 ------------------------------------------------------------------------------
 
 allWhite :: Picture
@@ -322,7 +336,10 @@ stripes a b = Picture f
 --       ["000000","000000","000000","000000","000000"]]
 
 paint :: Picture -> Shape -> Picture -> Picture
-paint pat shape base = todo
+paint (Picture pattern) (Shape shape) (Picture base) = Picture f
+                                                       where f (Coord x y) | shape (Coord x y) = pattern (Coord x y)
+                                                                           | otherwise = base (Coord x y)
+
 ------------------------------------------------------------------------------
 
 -- Here's a patterned version of the snowman example. See it by running:
@@ -385,19 +402,31 @@ xy = Picture f
 data Fill = Fill Color
 
 instance Transform Fill where
-  apply = todo
+  apply (Fill c) (Picture p) = Picture f
+                               where f (Coord x y) = c
 
 data Zoom = Zoom Int
   deriving Show
 
 instance Transform Zoom where
-  apply = todo
+  apply (Zoom i) p = zoom i p
 
 data Flip = FlipX | FlipY | FlipXY
   deriving Show
 
 instance Transform Flip where
-  apply = todo
+  apply FlipX (Picture p) = Picture f
+                            where f c = p(flipX c)
+  apply FlipY (Picture p) = Picture f
+                            where f c = p(flipY c)
+  apply FlipXY p = flipXY p
+
+flipX :: Coord -> Coord
+flipX (Coord x y) = Coord (-x) y
+
+flipY :: Coord -> Coord
+flipY (Coord x y) = Coord x (-y)
+
 ------------------------------------------------------------------------------
 
 ------------------------------------------------------------------------------
@@ -412,8 +441,9 @@ instance Transform Flip where
 data Chain a b = Chain a b
   deriving Show
 
-instance Transform (Chain a b) where
-  apply = todo
+instance (Transform a, Transform b) => Transform (Chain a b) where
+  apply (Chain t1 t2) p = apply t1 (apply t2 p)
+  
 ------------------------------------------------------------------------------
 
 -- Now we can redefine largeVerticalStripes using the above Transforms.
