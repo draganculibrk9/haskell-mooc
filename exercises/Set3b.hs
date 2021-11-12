@@ -50,7 +50,17 @@ buildList start count end = start:(buildList start (count - 1) end)
 -- Ps. you'll probably need a recursive helper function
 
 sums :: Int -> [Int]
-sums i = todo
+sums i = [sumsHelper t | t <- generateRange i []]
+
+sumsHelper :: Int -> Int
+sumsHelper i = (i * (i + 1)) `div` 2
+
+generateRange :: Int -> [Int] -> [Int]
+generateRange 1 range = 1:range
+generateRange current range = generateRange (current - 1) (current:range)
+-- sumsHelper :: Int -> Int -> Int
+-- sumsHelper 0 sum = sum
+-- sumsHelper i sum = sumsHelper (i - 1) (sum + i)
 
 ------------------------------------------------------------------------------
 -- Ex 3: define a function mylast that returns the last value of the
@@ -113,7 +123,25 @@ sorted (first:second:rest) = if first > second
 -- Use pattern matching and recursion (and the list constructors : and [])
 
 sumsOf :: [Int] -> [Int]
-sumsOf xs = todo
+sumsOf xs = [sumValues x 0 | x <- rev2 (generatePartials xs)]
+
+rev2 :: [a] -> [a]
+rev2 xs = go [] xs where
+  go :: [a] -> [a] -> [a]
+  go acc    []  =       acc
+  go acc (x:xs) = go (x:acc) xs
+
+generatePartials :: [Int] -> [[Int]]
+generatePartials [] = []
+generatePartials xs = xs:(generatePartials (removeLast xs))
+
+removeLast :: [Int] -> [Int]
+removeLast [last] = []
+removeLast (first:rest) = first:(removeLast rest)
+
+sumValues :: [Int] -> Int -> Int
+sumValues [] sum = sum
+sumValues (first:rest) sum = sumValues rest (sum + first)
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement the function merge that merges two sorted lists of
@@ -194,4 +222,12 @@ map2 f (firstAs:as) (firstBs:bs) = (f firstAs firstBs):(map2 f as bs)
 --   ==> []
 
 maybeMap :: (a -> Maybe b) -> [a] -> [b]
-maybeMap f xs = todo
+maybeMap f xs = foldr' maybeAdd [] [f x | x <- xs]
+
+foldr' :: (a -> b -> b) -> b -> [a] -> b
+foldr' f z []     = z
+foldr' f z (x:xs) = f x (foldr' f z xs)
+
+maybeAdd :: Maybe b -> [b] -> [b]
+maybeAdd Nothing xs = xs
+maybeAdd (Just value) xs = value:xs
