@@ -166,7 +166,11 @@ while check update value = if not (check value)
 --   whileRight (step 1000) 3  ==> 1536
 
 whileRight :: (a -> Either b a) -> a -> b
-whileRight f x = todo
+whileRight f x = whileRight' f (f x)
+
+whileRight' :: (a -> Either b a) -> Either b a -> b
+whileRight' f (Left b) = b
+whileRight' f (Right a) = whileRight' f (f a)
 
 -- for the whileRight examples:
 -- step k x doubles x if it's less than k
@@ -221,7 +225,11 @@ xs +|+ ys = headOrEmpty xs ++ headOrEmpty ys
 --   sumRights [Left "bad!", Left "missing"]         ==>  0
 
 sumRights :: [Either a Int] -> Int
-sumRights = todo
+sumRights xs = foldr sumRightsHelper 0 xs
+
+sumRightsHelper :: Either a Int -> Int -> Int
+sumRightsHelper (Left value) sum = sum
+sumRightsHelper (Right value) sum = sum + value
 
 ------------------------------------------------------------------------------
 -- Ex 12: recall the binary function composition operation
@@ -261,7 +269,8 @@ multiCompose fs v = multiCompose (init fs) ((head (reverse fs)) v)
 --   multiApp id [head, (!!2), last] "axbxc" ==> "abc"
 --   multiApp sum [head, (!!2), last] [1,9,2,9,3] ==> 6
 
-multiApp = todo
+multiApp :: ([b] -> c) -> [(a -> b)] -> a -> c
+multiApp f gs x = f (map (\g -> g x) gs)  
 
 ------------------------------------------------------------------------------
 -- Ex 14: in this exercise you get to implement an interpreter for a
@@ -296,4 +305,12 @@ multiApp = todo
 -- function, the surprise won't work.
 
 interpreter :: [String] -> [String]
-interpreter commands = todo
+interpreter commands = reverse (snd (foldr interpreterHelper ((0, 0), []) (reverse commands)))
+
+interpreterHelper :: String -> ((Int, Int), [String]) -> ((Int, Int), [String])
+interpreterHelper "up" (coords, output) = ((fst coords, snd coords + 1), output)
+interpreterHelper "down" (coords, output) = ((fst coords, snd coords - 1), output)
+interpreterHelper "left" (coords, output) = ((fst coords - 1, snd coords), output)
+interpreterHelper "right" (coords, output) = ((fst coords + 1, snd coords), output)
+interpreterHelper "printX" (coords, output) = (coords, (show (fst coords)):output)
+interpreterHelper "printY" (coords, output) = (coords, (show (snd coords)):output)
