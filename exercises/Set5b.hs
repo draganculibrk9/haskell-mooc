@@ -220,4 +220,24 @@ set (first:rest) value (Node root l r) = if first == StepL
 --                    (Node 5 Empty Empty))                     ==>  Just [StepL,StepR]
 
 search :: Eq a => a -> Tree a -> Maybe [Step]
-search = todo
+search value Empty = Nothing
+search value (Node current l r) = if current == value
+								  then Just []
+								  else if null steps
+									   then Nothing
+									   else Just steps
+									   where steps = searchHelper value (Node current l r) []
+
+searchHelper :: Eq a => a -> Tree a -> [Step] -> [Step]
+searchHelper value (Node current Empty Empty) path = if value == current
+													 then reverse path
+													 else []
+searchHelper value (Node current l Empty) path = if value == current
+												 then reverse path
+												 else searchHelper value l (StepL:path)
+searchHelper value (Node current Empty r) path = if value == current
+												 then reverse path
+												 else searchHelper value r (StepR:path)
+searchHelper value (Node current l r) path = if value == current
+											 then reverse path
+											 else (searchHelper value l (StepL:path)) ++ (searchHelper value r (StepR:path))
