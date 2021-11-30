@@ -47,10 +47,10 @@ type Col   = Int
 type Coord = (Row, Col)
 
 nextRow :: Coord -> Coord
-nextRow (i,j) = todo
+nextRow (i,j) = (i+1,1)
 
 nextCol :: Coord -> Coord
-nextCol (i,j) = todo
+nextCol (i,j) = (i,j+1)
 
 --------------------------------------------------------------------------------
 -- Ex 2: Implement the function prettyPrint that, given the size of
@@ -99,9 +99,14 @@ nextCol (i,j) = todo
 -- of the width (or height) n of the chess board; the naïve solution with elem
 -- takes O(n^3) time. Just ignore the previous sentence, if you're not familiar
 -- with the O-notation.)
-prettyPrint :: Size -> [Coord] -> String
-prettyPrint = todo
 
+prettyPrint :: Size -> [Coord] -> String
+prettyPrint size queens = intercalate "" [if elem (i,j) queens then "Q" ++ (addLinebreak size (i,j)) else "." ++ (addLinebreak size (i,j)) | i <- [1 .. size], j <- [1 .. size]]
+
+addLinebreak :: Size -> Coord -> String
+addLinebreak size (i,j) = if j == size
+						  then "\n"
+						  else ""
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
 -- sameDiag, and sameAntidiag that check whether or not two coordinates of the
@@ -124,16 +129,16 @@ prettyPrint = todo
 --   sameAntidiag (500,5) (5,500) ==> True
 
 sameRow :: Coord -> Coord -> Bool
-sameRow (i,j) (k,l) = todo
+sameRow (i,j) (k,l) = i == k
 
 sameCol :: Coord -> Coord -> Bool
-sameCol (i,j) (k,l) = todo
+sameCol (i,j) (k,l) = j == l
 
 sameDiag :: Coord -> Coord -> Bool
-sameDiag (i,j) (k,l) = todo
+sameDiag (i,j) (k,l) = abs (i - k) == abs (j - l)
 
 sameAntidiag :: Coord -> Coord -> Bool
-sameAntidiag (i,j) (k,l) = todo
+sameAntidiag (i,j) (k,l) = abs (i - k) == abs (j - l)
 
 --------------------------------------------------------------------------------
 -- Ex 4: In chess, a queen may capture another piece in the same row, column,
@@ -189,7 +194,8 @@ type Candidate = Coord
 type Stack     = [Coord]
 
 danger :: Candidate -> Stack -> Bool
-danger = todo
+danger field [] = False
+danger field (first:rest) = sameRow field first || sameCol field first || sameDiag field first || sameAntidiag field first || danger field rest
 
 --------------------------------------------------------------------------------
 -- Ex 5: In this exercise, the task is to write a modified version of
@@ -224,7 +230,7 @@ danger = todo
 -- solution to this version. Any working solution is okay in this exercise.)
 
 prettyPrint2 :: Size -> Stack -> String
-prettyPrint2 = todo
+prettyPrint2 size queens = intercalate "" [if elem (i,j) queens then "Q" ++ (addLinebreak size (i,j)) else if danger (i,j) queens then "#" ++ (addLinebreak size (i,j)) else "." ++ (addLinebreak size (i,j)) | i <- [1 .. size], j <- [1 .. size]]
 
 --------------------------------------------------------------------------------
 -- Ex 6: Now that we can check if a piece can be safely placed into a square in
@@ -269,7 +275,7 @@ prettyPrint2 = todo
 --     Q#######
 
 fixFirst :: Size -> Stack -> Maybe Stack
-fixFirst n s = todo
+fixFirst n (first:rest) = todo
 
 --------------------------------------------------------------------------------
 -- Ex 7: We need two helper functions for stack management.
@@ -291,10 +297,11 @@ fixFirst n s = todo
 -- Hint: Remember nextRow and nextCol? Use them!
 
 continue :: Stack -> Stack
-continue s = todo
+continue (first:rest) = (fst first + 1,snd first):first:rest
 
 backtrack :: Stack -> Stack
-backtrack s = todo
+backtrack (first:rest) = (fst second,snd second + 1):(tail rest)
+						 where second = head rest
 
 --------------------------------------------------------------------------------
 -- Ex 8: Let's take a step. Our algorithm solves the problem (in a
