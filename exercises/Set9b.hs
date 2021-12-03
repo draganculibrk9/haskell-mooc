@@ -105,8 +105,8 @@ prettyPrint size queens = intercalate "" [if elem (i,j) queens then "Q" ++ (addL
 
 addLinebreak :: Size -> Coord -> String
 addLinebreak size (i,j) = if j == size
-						  then "\n"
-						  else ""
+                          then "\n"
+                          else ""
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
 -- sameDiag, and sameAntidiag that check whether or not two coordinates of the
@@ -275,7 +275,14 @@ prettyPrint2 size queens = intercalate "" [if elem (i,j) queens then "Q" ++ (add
 --     Q#######
 
 fixFirst :: Size -> Stack -> Maybe Stack
-fixFirst n (first:rest) = todo
+fixFirst n [first] = if snd first > n
+                     then Nothing
+                     else Just [first]
+
+fixFirst n (first:rest) = if null newPositions
+                          then Nothing
+                          else Just ((head newPositions):rest)
+                          where newPositions = filter (\pos -> not (danger pos rest)) [(i,j) | i <- [fst first], j <- [snd first .. n]]
 
 --------------------------------------------------------------------------------
 -- Ex 7: We need two helper functions for stack management.
@@ -297,11 +304,11 @@ fixFirst n (first:rest) = todo
 -- Hint: Remember nextRow and nextCol? Use them!
 
 continue :: Stack -> Stack
-continue (first:rest) = (fst first + 1,snd first):first:rest
+continue (first:rest) = (nextRow first):first:rest
 
 backtrack :: Stack -> Stack
 backtrack (first:rest) = (fst second,snd second + 1):(tail rest)
-						 where second = head rest
+                         where second = head rest
 
 --------------------------------------------------------------------------------
 -- Ex 8: Let's take a step. Our algorithm solves the problem (in a
@@ -370,7 +377,11 @@ backtrack (first:rest) = (fst second,snd second + 1):(tail rest)
 --     step 8 [(6,1),(5,4),(4,2),(3,5),(2,3),(1,1)] ==> [(5,5),(4,2),(3,5),(2,3),(1,1)]
 
 step :: Size -> Stack -> Stack
-step = todo
+step n queens = continueOrBacktrack (fixFirst n queens) queens
+
+continueOrBacktrack :: Maybe Stack -> Stack -> Stack
+continueOrBacktrack Nothing queens = backtrack queens
+continueOrBacktrack (Just s) queens = continue s
 
 --------------------------------------------------------------------------------
 -- Ex 9: Let's solve our puzzle! The function finish takes a partial
@@ -385,7 +396,9 @@ step = todo
 -- solve the n queens problem.
 
 finish :: Size -> Stack -> Stack
-finish = todo
+finish n stack = if length stack > n
+                 then tail stack
+                 else finish n (step n stack)
 
 solve :: Size -> Stack
 solve n = finish n [(1,1)]
