@@ -73,12 +73,16 @@ getAllQuery = Query (T.pack "SELECT account, amount FROM events;")
 -- openDatabase should open an SQLite database using the given
 -- filename, run initQuery on it, and produce a database Connection.
 openDatabase :: String -> IO Connection
-openDatabase = todo
+openDatabase filename = do
+  connection <- open filename
+  execute_ connection initQuery
+  return connection 
 
 -- given a db connection, an account name, and an amount, deposit
 -- should add an (account, amount) row into the database
 deposit :: Connection -> T.Text -> Int -> IO ()
-deposit = todo
+deposit connection account amount = do
+  execute connection depositQuery (account, amount)
 
 ------------------------------------------------------------------------------
 -- Ex 2: Fetching an account's balance. Below you'll find
@@ -109,7 +113,9 @@ balanceQuery :: Query
 balanceQuery = Query (T.pack "SELECT amount FROM events WHERE account = ?;")
 
 balance :: Connection -> T.Text -> IO Int
-balance = todo
+balance connection account = do
+  amounts <- query connection balanceQuery [account] :: IO [[Int]]
+  return (sum (concat amounts))
 
 ------------------------------------------------------------------------------
 -- Ex 3: Now that we have the database part covered, let's think about
@@ -141,14 +147,31 @@ balance = todo
 --   parseCommand [T.pack "deposit", T.pack "madoff", T.pack "123456"]
 --     ==> Just (Deposit "madoff" 123456)
 
-data Command = Deposit T.Text Int | Balance T.Text
+data Command = Deposit T.Text Int | Balance T.Text | Withdraw T.Text Int
   deriving (Show, Eq)
 
 parseInt :: T.Text -> Maybe Int
 parseInt = readMaybe . T.unpack
 
 parseCommand :: [T.Text] -> Maybe Command
-parseCommand = todo
+parseCommand [] = Nothing
+parseCommand commandParts = if head commandParts == T.pack "balance"
+                            then if length commandParts == 2
+                                 then Just (Balance (commandParts !! 1))
+                                 else Nothing
+                            else if head commandParts == T.pack "deposit"
+                                 then if length commandParts == 3
+                                      then depositCommand (commandParts !! 1) (parseInt (commandParts !! 2))
+                                      else Nothing
+                                 else if head commandParts == T.pack "withdraw"
+                                      then if length commandParts == 3
+                                           then withdrawCommand (commandParts !! 1) (parseInt (commandParts !! 2))
+                                           else Nothing
+                                      else Nothing
+                            where depositCommand account Nothing = Nothing
+                                  depositCommand account (Just amount) = Just (Deposit account amount)
+                                  withdrawCommand account Nothing = Nothing
+                                  withdrawCommand account (Just amount) = Just (Withdraw account amount)
 
 ------------------------------------------------------------------------------
 -- Ex 4: Running commands. Implement the IO operation perform that takes a
@@ -174,7 +197,21 @@ parseCommand = todo
 --   "0"
 
 perform :: Connection -> Maybe Command -> IO T.Text
-perform = todo
+perform connection (Just command) = executeCommand connection command 
+
+perform connection Nothing = do
+                             return (T.pack "ERROR")
+
+executeCommand :: Connection -> Command -> IO T.Text
+executeCommand connection (Deposit account amount) = do
+  deposit connection account amount
+  return (T.pack "OK")
+executeCommand connection (Balance account) = do
+  result <- balance connection account
+  return (T.pack (show result))
+executeCommand connection (Withdraw account amount) = do
+  withdraw connection account amount
+  return (T.pack "OK")
 
 ------------------------------------------------------------------------------
 -- Ex 5: Next up, let's set up a simple HTTP server. Implement a WAI
@@ -194,7 +231,7 @@ encodeResponse t = LB.fromStrict (encodeUtf8 t)
 -- Remember:
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 simpleServer :: Application
-simpleServer request respond = todo
+simpleServer request respond = respond (responseLBS status200 [] (encodeResponse (T.pack "BANK")))
 
 ------------------------------------------------------------------------------
 -- Ex 6: Now we finally have all the pieces we need to actually
@@ -223,7 +260,10 @@ simpleServer request respond = todo
 -- Remember:
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 server :: Connection -> Application
-server db request respond = todo
+server db request respond = do
+  let paths = pathInfo request
+  result <- perform db (parseCommand paths)
+  respond (responseLBS status200 [] (encodeResponse result))
 
 port :: Int
 port = 3421
@@ -254,7 +294,9 @@ main = do
 --   - Open <http://localhost:3421/balance/simon> in your browser.
 --     You should see the text 11.
 
-
+withdraw :: Connection -> T.Text -> Int -> IO ()
+withdraw connection account amount = do
+  execute connection depositQuery (account, -amount)
 ------------------------------------------------------------------------------
 -- Ex 8: Error handling. Modify the parseCommand function so that it
 -- returns Nothing when the input is not valid. Modify the perform
@@ -273,5 +315,3 @@ main = do
 --    - http://localhost:3421/deposit/pekka/1/3
 --    - http://localhost:3421/balance
 --    - http://localhost:3421/balance/matti/pekka
-
-
